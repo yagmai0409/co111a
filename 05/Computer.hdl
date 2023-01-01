@@ -20,4 +20,13 @@ CHIP Computer {
 
     PARTS:
     // Put your code here:
+    ROM32K(address=pc, out=instruction);
+    CPU(inM=out, instruction=instruction, reset=reset, outM=outM, writeM=writeM, addressM=addressM, pc=pc); 
+    Memory(in=outM, load=writeM, address=addressM, out=out);
+ /*這段程式的功能是使用ROM32K、CPU和Memory模組對輸入和輸出進行處理，最終將處理後的結果輸出。
+
+首先，它會使用ROM32K模組將address的值作為輸入，並將處理後的結果存到instruction中。然後，它會使用CPU模組對inM、instruction、reset、outM、writeM、addressM和pc的值進行處理，並將處理後的結果存到相應的變量中。
+
+最後，它會使用Memory模組對in、load、address和out的值進行處理，並將處理後的結果存到out中。*/
+//參考自他人專案，僅添加註解
 }

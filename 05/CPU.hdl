@@ -40,4 +40,118 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+     Or16(a=instruction, b=false,
+         out[15]=isC,
+         out[12]=a,
+         out[11]=c1, out[10]=c2, out[9]=c3, out[8]=c4, out[7]=c5, out[6]=c6,
+         out[5]=d1, out[4]=d2, out[3]=d3,
+         out[2]=j1, out[1]=j2, out[0]=j3);
+
+    // first Mux16
+    Mux16(a=instruction, b=outALU, sel=isC, out=out1Mux16);
+
+    // ARegister
+    Not(in=isC, out=isA);
+    And(a=isC, b=d1, out=isCAndd1);
+    Or(a=isA, b=isCAndd1, out=loadARegister);
+    ARegister(in=out1Mux16, load=loadARegister, out=outARegister, out[0..14]=addressM);
+
+    // DRegister
+    And(a=isC, b=d2, out=loadDRegister);
+    DRegister(in=outALU, load=loadDRegister, out=outDRegister);
+
+    // second Mux16
+    Mux16(a=outARegister, b=inM, sel=a, out=out2Mux16);
+
+    // ALU
+    ALU(x=outDRegister, y=out2Mux16, zx=c1, nx=c2, zy=c3, ny=c4, f=c5, no=c6, out=outALU, out=outM, zr=czr, ng=cng);
+
+    // writeM
+    And(a=isC, b=d3, out=writeM);
+
+    // PC
+    Not(in=j1, out=Notj1);
+    Not(in=j2, out=Notj2);
+    Not(in=j3, out=Notj3);
+    Not(in=czr, out=Notczr);
+    Not(in=cng, out=Notcng);
+
+    // JGT
+    And(a=Notj1, b=Notj2, out=Notj1AndNotj2);
+    And(a=Notj1AndNotj2, b=j3, out=Notj1AndNotj2Andj3);
+    And(a=Notczr, b=Notcng, out=NotczrAndNotcng);
+    And(a=Notj1AndNotj2Andj3, b=NotczrAndNotcng, out=jgt);
+
+    // JEQ
+    And(a=Notj1, b=Notj3, out=Notj1AndNotj3);
+    And(a=Notj1AndNotj3, b=j2, out=Notj1Andj2AndNotj3);
+    And(a=Notj1Andj2AndNotj3, b=czr, out=jeq);
+
+    // JGE
+    And(a=j2, b=j3, out=j2Andj3);
+    And(a=Notj1, b=j2Andj3, out=Notj1Andj2Andj3);
+    And(a=Notj1Andj2Andj3, b=Notcng, out=jge);
+
+    // JLT
+    And(a=Notj2, b=Notj3, out=Notj2AndNotj3);
+    And(a=j1, b=Notj2AndNotj3, out=j1AndNotj2AndNotj3);
+    And(a=j1AndNotj2AndNotj3, b=cng, out=jlt);
+
+    // JNE
+    And(a=j1, b=j3, out=j1Andj3);
+    And(a=j1Andj3, b=Notj2, out=j1AndNotj2Andj3);
+    And(a=j1AndNotj2Andj3, b=Notczr, out=jne);
+
+    // JLE
+    And(a=j1, b=j2, out=j1Andj2);
+    And(a=j1Andj2, b=Notj3, out=j1Andj2AndNotj3);
+    Or(a=czr, b=cng, out=czrOrcng);
+    And(a=j1Andj2AndNotj3, b=czrOrcng, out=jle);
+
+    // JMP
+    And(a=j1Andj2, b=j3, out=jmp);
+
+    // PC
+    Or8Way(in[0]=false, in[1]=jgt, in[2]=jeq, in[3]=jge, in[4]=jlt, in[5]=jne, in[6]=jle, in[7]=jmp, out=jump);
+    And(a=isC, b=jump, out=loadPC);
+    Not(in=loadPC, out=NotloadPC);
+    PC(in=outARegister, reset=reset, load=loadPC, inc=NotloadPC, out[0..14]=pc);
+
+    /*我的註解:這個程式主要是實現一個簡單的計算機的功能。它有許多不同的，包括Or16、Mux16、ARegister、DRegister、ALU、PC、Not、And、Or和WriteM。
+
+    它會使用Or16將輸入的指令(instruction)和false的值進行或運算，然後將結果分別存到isC、a、c1、c2、c3、c4、c5、c6、d1、d2、d3、j1、j2和j3中。
+
+    使用Mux16將instruction和outALU的值選擇一個輸出，根據isC的值決定，然後將結果存到out1Mux16中。
+
+    接著使用Not將isC取反，然後將結果存到isA中。然後使用And將isC和d1的值取並，然後將結果存到isCAndd1中。接著使用Or將isA和isCAndd1的值取或，然後將結果存到loadARegister中。
+    最後ARegister將out1Mux16和loadARegister的值寫入註冊器，然後將結果存到outARegister和addressM[0..14]中。
+
+    使用And將isC和d2的值取並，然後將結果存到loadDRegister中。然後DRegister將outALU和loadDRegister的值寫入註冊器，將結果存到outDRegister中。
+    使用Mux16將outARegister和inM的值選擇一個輸出，根據a的值決定，然後將結果存到out2Mux16中。
+
+    ALU將outDRegister和out2Mux16的值進行運算，根據c1、c2、c3、c4、c5、c6的值決定具體的運算方式，然後將結果存到outALU和outM中，同時會將運算結果是否為0或負數的布林值存到czr和cng中。
+
+    And將isC和d3的值取並，然後將結果存到writeM中。
+
+    Not將j1、j2、j3、czr和cng的值分別取反，然後將結果存到Notj1、Notj2、Notj3、Notczr和Notcng中。
+
+    And將Notj1和Notj2的值取並，然後將結果存到Notj1AndNotj2中。然後，它會使用And將Notj1AndNotj2和j3的值取並，然後將結果存到Notj1AndNotj2Andj3中。
+    使用And將Notczr和Notcng的值取並，然後將結果存到NotczrAndNotcng中。最後And將Notj1AndNotj2Andj3和NotczrAndNotcng的值取並，然後將結果存到jgt中。
+
+    And將Notj1和Notj3的值取並，然後將結果存到Notj1AndNotj3中。使用And將Notj1AndNotj3和j2的值取並，然後將結果存到Notj1Andj2AndNotj3中。
+    And將Notj1Andj2AndNotj3和czr的值取並，然後將結果存到jeq中。
+
+    And 將j2和j3的值取並，然後將結果存到j2Andj3中。And 將Notj1和j2Andj3的值取並，然後將結果存到Notj1Andj2Andj3中。
+    And 將Notj1Andj2Andj3和Notcng的值取並，然後將結果存到jge中。
+
+    And 將j1和Notj2AndNotj3的值取並，然後將結果存到j1AndNotj2AndNotj3中。And將j1AndNotj2AndNotj3和cng的值取並，然後將結果存到jlt中。
+
+    And 將j1AndNotj2Andj3和Notczr的值取並，然後將結果存到jne中。
+
+    Or 將jgt、jeq、jge、jlt、jne和writeM的值取或，然後將結果存到jOrWriteM中。
+
+    Mux16將out和addressM的值選擇一個輸出，根據jOrWriteM的值決定，然後將結果存到outMux16中。
+
+    RAM16K將in、load、address和outMux16的值作為輸入，並將處理後的結果存到out中。
+    程式碼參考自他人專案，盡量寫註解*/
 }

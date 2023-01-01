@@ -28,4 +28,27 @@ CHIP Memory {
 
     PARTS:
     // Put your code here:
+    Not(in=address[14], out=Not14);
+    And(a=Not14, b=load, out=loadM);
+    And(a=address[14], b=load, out=loadS);
+
+    RAM16K(in=in, load=loadM, address=address[0..13], out=outM);
+    Screen(in=in, load=loadS, address=address[0..12], out=outS);
+    Keyboard(out=outK);
+
+    Mux16(a=outS, b=outK, sel=address[13], out=outSK);
+    Mux16(a=outM, b=outSK, sel=address[14], out=out);
+
+    /* 這段程式碼的功能是透過使用多種模組對輸入和輸出進行處理，最終將處理後的結果輸出。
+
+    使用Not模組將address[14]的值取反，然後將結果存到Not14中。
+
+    然後使用And模組將Not14和load的值取並，然後將結果存到loadM中。接著，它會使用And模組將address[14]和load的值取並，然後將結果存到loadS中。
+
+    接下來使用RAM16K模組將in、loadM、address和outM的值作為輸入，並將處理後的結果存到outM中。
+    然後使用Screen模組將in、loadS和address的值作為輸入，並將處理後的結果存到outS中。使用Keyboard模組，並將處理後的結果存到outK中。
+
+    Mux16模組將outS和outK的值選擇一個輸出，根據address[13]的值決定，然後將結果存到outSK中。
+    使用Mux16模組將outM和outSK的值選擇一個輸出，根據address[14]的值決定，然後將結果存到out中。
+    程式碼參考自他人專案，盡量寫註解 */
 }
